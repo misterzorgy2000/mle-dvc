@@ -2,6 +2,7 @@
 
 # 1 — импорты
 import pandas as pd
+import numpy as np
 from sqlalchemy import create_engine
 import os
 from dotenv import load_dotenv
@@ -21,6 +22,17 @@ def create_connection():
     conn = create_engine(f'postgresql://{username}:{password}@{host}:{port}/{db}', connect_args={'sslmode':'require'})
     return conn
 
+def fill_missing_values(data):
+    cols_with_nans = data.isnull().sum()
+    cols_with_nans = cols_with_nans[cols_with_nans > 0].index.drop('end_date')
+    for col in cols_with_nans:
+        if data[col].dtype in [float, int]:
+            fill_value = data[col].mean()
+        elif data[col].dtype == 'object':
+            fill_value = data[col].mode().iloc[0]
+        data[col] = data[col].fillna(fill_value)
+    return data
+
 # 3 — главная функция
 def get_data():
     # 3.1 — загрузка гиперпараметров
@@ -28,9 +40,10 @@ def get_data():
         params = yaml.safe_load(fd)
     conn = create_connection()
     data = pd.read_sql('select * from clean_users_churn', conn, index_col=params['index_col'])
+    data = fill_missing_values(data)
+    
     conn.dispose()
 
-    print(data)
     # 3.4 — сохранение результата шага
     os.makedirs('data', exist_ok=True)
     data.to_csv('data/initial_data.csv', index=None)

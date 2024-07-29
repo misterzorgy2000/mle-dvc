@@ -21,6 +21,7 @@ def fit_model():
     other_cat_features = cat_features[potential_binary_features[~potential_binary_features].index]
     num_features = data.select_dtypes(['float'])
 
+    data.dropna()
     preprocessor = ColumnTransformer(
         [
         ('binary', OneHotEncoder(drop=params['one_hot_drop']), binary_cat_features.columns.tolist()),
@@ -31,9 +32,8 @@ def fit_model():
         verbose_feature_names_out=False
     )
 
-    model = LogisticRegression(C=1, penalty=params['penalty'], class_weight=params['auto_class_weights'])
+    model = LogisticRegression(C=params['C'], penalty=params['penalty'])
 
-    print(data)
     pipeline = Pipeline(
         [
             ('preprocessor', preprocessor),
